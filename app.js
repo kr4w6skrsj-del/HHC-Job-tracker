@@ -753,21 +753,33 @@ function downloadBlob(blob, filename) {
 }
 
 function buildPdfFilename(job) {
-  const clean = value => String(value ?? "")
+  const cleanName = value => String(value ?? "Customer")
     .trim()
     .replace(/[\\/:*?"<>|]+/g, "-")
-    .replace(/\s+/g, "_");
+    .replace(/\s+/g, " ");
 
-  const customerId = clean(job.customerId || "Customer");
-  const jobNo = clean(job.jobNo || job.id || "Job");
-  const now = new Date();
-  const date = [
-    String(now.getMonth() + 1).padStart(2, "0"),
-    String(now.getDate()).padStart(2, "0"),
-    now.getFullYear()
-  ].join("-");
+  const customerName = cleanName(job.customerName || "Customer");
+  const date = getFilenameDate(job.jobDay);
 
-  return `${customerId}_Job${jobNo}_${date}.pdf`;
+  return `${customerName} ${date}.pdf`;
+}
+
+function getFilenameDate(jobDay) {
+  const raw = String(jobDay ?? "").trim();
+
+  // Prefer an M/D/Y date if the office-imported job date already contains one.
+  const mdY = raw.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+  if (mdY) {
+    let year = Number(mdY[3]);
+    if (year < 100) year += year >= 70 ? 1900 : 2000;
+    return `${Number(mdY[1])}-${Number(mdY[2])}-${year}`;
+  }
+
+  // Otherwise try normal JavaScript date parsing, then fall back to today.
+  const parsed = new Date(raw);
+  const d = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+
+  return `${d.getMonth() + 1}-${d.getDate()}-${d.getFullYear()}`;
 }
 
 function resizeImage(file, maxSize, quality) {

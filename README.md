@@ -38,10 +38,10 @@ The PDF's first page is generated in the familiar HydroHoist service-sheet style
 Uploaded job photos are placed on additional PDF pages so the service sheet remains clean and familiar to office staff.
 
 Filename format:
-`CustomerID_JobNumber_Date.pdf`
+`Customer Name M-D-Y.pdf`
 
 Example:
-`1883_Job1042_08-17-2026.pdf`
+`Roy Holmes 8-16-2026.pdf`
 
 ### HydroHoist branding
 The app now uses the HydroHoist of the Carolinas **flag mark supplied by the user**:
