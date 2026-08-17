@@ -26,7 +26,7 @@
           </div>
         </div>
         <h2>Select Crew</h2>
-        <p class="muted">Version 1 uses a local crew selector. Cloud login can replace this later.</p>
+        <p class="muted">Choose the crew using this device. Office/cloud login can replace this selector later.</p>
         <div class="crew-grid">
           <button class="crew-btn black" data-crew="HHBLACK">HHBLACK</button>
           <button class="crew-btn blue" data-crew="HHBLUE">HHBLUE</button>
@@ -36,30 +36,93 @@
       </section>
 
       <section id="jobsView" class="hidden">
-        <div class="view-head">
+        <div class="view-head week-head">
           <div>
             <div class="eyebrow">CURRENT CREW</div>
             <h1 id="crewTitle">HHBLACK</h1>
+            <div class="week-range" id="weekRange"></div>
           </div>
-          <button class="ghost-btn" id="switchCrewBtn">Switch Crew</button>
+          <div class="head-actions">
+            <button class="ghost-btn" id="archiveBtn">Archive</button>
+            <button class="ghost-btn" id="switchCrewBtn">Switch Crew</button>
+          </div>
         </div>
 
-        <div class="toolbar">
+        <div class="toolbar weekly-toolbar">
           <button class="primary-btn" id="demoImportBtn">Simulate Office Import</button>
-          <span class="muted small">This stands in for Microsoft Access → Job Tracker for V1.</span>
+          <div>
+            <strong id="weekStats">0 remaining this week • 0 completed</strong>
+            <div class="muted small">Monday–Saturday dispatch. Sunday starts the next work week.</div>
+          </div>
         </div>
 
-        <div class="job-list" id="jobList"></div>
+        <section id="carryoverSection" class="carryover-section hidden">
+          <div class="section-heading">
+            <div>
+              <div class="eyebrow warning-text">NEEDS ATTENTION</div>
+              <h2>Carryover Jobs <span class="count-badge" id="carryoverCount">0</span></h2>
+            </div>
+            <p class="muted small">Unfinished jobs from the prior week stay here instead of disappearing.</p>
+          </div>
+          <div class="job-list" id="carryoverList"></div>
+        </section>
+
+        <nav class="day-tabs" id="dayTabs" aria-label="Work week days"></nav>
+
+        <section class="day-board">
+          <div class="section-heading day-heading-row">
+            <div>
+              <div class="eyebrow">THIS WEEK</div>
+              <h2 id="dayHeading">Monday</h2>
+            </div>
+            <div class="day-summary" id="daySummary">0 remaining • 0 completed</div>
+          </div>
+          <div class="job-list" id="jobList"></div>
+
+          <details class="completed-section hidden" id="completedSection">
+            <summary>
+              <span id="completedSummary">Completed (0)</span>
+              <span class="summary-hint">Tap to view finished jobs</span>
+            </summary>
+            <div class="job-list completed-list" id="completedJobList"></div>
+          </details>
+        </section>
+      </section>
+
+      <section id="archiveView" class="hidden">
+        <div class="view-head">
+          <div>
+            <div class="eyebrow">WEEKLY HISTORY</div>
+            <h1 id="archiveCrewTitle">HHBLACK Archive</h1>
+            <div class="week-range" id="archiveCountText">0 archived jobs</div>
+          </div>
+          <button class="back-btn" id="archiveBackBtn">‹ This Week</button>
+        </div>
+        <div class="archive-note panel">
+          <strong>Weekly archive</strong>
+          <span>Completed jobs move here when the app rolls into the next work week on Sunday. Jobs can also be archived manually.</span>
+        </div>
+        <div id="archiveList" class="archive-list"></div>
       </section>
 
       <section id="jobDetail" class="hidden">
-        <div class="view-head">
+        <div class="view-head job-detail-head">
           <button class="back-btn" id="backBtn">‹ Jobs</button>
           <div class="job-title">
-            <div class="eyebrow">SERVICE JOB</div>
+            <div class="eyebrow" id="detailSchedule">SERVICE JOB</div>
             <h1 id="jobNumberTitle">Job #</h1>
           </div>
           <span id="jobStatus" class="status assigned">Assigned</span>
+        </div>
+
+        <div class="detail-tools">
+          <button type="button" class="maps-btn" id="mapsBtn">🗺 Open Lake Address in Apple Maps</button>
+          <div class="detail-manage-actions">
+            <button type="button" class="ghost-btn hidden" id="reopenBtn">Reopen Job</button>
+            <button type="button" class="ghost-btn" id="archiveJobBtn">Archive Job</button>
+            <button type="button" class="ghost-btn hidden" id="restoreJobBtn">Restore to This Week</button>
+            <button type="button" class="danger-btn" id="deleteJobBtn">Delete</button>
+          </div>
         </div>
 
         <form id="jobForm">
@@ -94,7 +157,10 @@
 
             <div class="two-col ruled-section">
               <div>
-                <h2>Lake Address</h2>
+                <div class="section-title-with-action">
+                  <h2>Lake Address</h2>
+                  <button type="button" class="maps-inline-btn" id="lakeMapsBtn">🗺 Directions</button>
+                </div>
                 <label>Address<input id="lakeAddress" readonly /></label>
                 <label>State<input id="lakeState" readonly /></label>
                 <label>City<input id="lakeCity" readonly /></label>
@@ -193,7 +259,7 @@
               <textarea id="workNotes" class="notes-area" placeholder="Describe work completed, findings, recommendations..."></textarea>
             </div>
 
-            <div class="ruled-section">
+            <div class="ruled-section job-photo-section">
               <h2>Job Photos</h2>
               <div class="photo-tools">
                 <label class="upload-btn">
@@ -219,7 +285,7 @@
       </section>
     </main>
 
-    <footer class="bottom-note">HHC Job Tracker • Version 1.1 Prototype</footer>
+    <footer class="bottom-note">HHC Job Tracker • Version 1.2 Prototype</footer>
   </div>
   <script src="app.js"></script>
 </body>

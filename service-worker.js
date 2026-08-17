@@ -1,4 +1,4 @@
-const CACHE = "hhc-v1-1-final-cache";
+const CACHE = "hhc-v1-2-final-20260817-cache";
 const ASSETS = ["./","./index.html","./styles.css","./app.js","./manifest.webmanifest","./logo-flag.png","./icon-192.png","./icon-512.png","./apple-touch-icon.png"];
 
 self.addEventListener("install", event => {

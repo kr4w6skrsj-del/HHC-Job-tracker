@@ -1,64 +1,69 @@
-# HHC Job Tracker — Version 1.1
+# HHC Job Tracker — Version 1.2 Final
 
-This is the revised Version 1.1 build.
+Version 1.2 final keeps the Version 1.1 HydroHoist service-sheet workflow and adds the weekly crew dispatch system approved on August 17, 2026.
 
-## Version 1.1 features
+## New in Version 1.2
+
+### Monday–Saturday job board
+- Jobs are organized into **Monday, Tuesday, Wednesday, Thursday, Friday, and Saturday** tabs.
+- Each tab shows the number of jobs still remaining that day.
+- Completed jobs stay attached to their scheduled day but collapse into a **Completed** section so the active list stays clean.
+- Office-imported jobs now have a `scheduledDate` / `weekKey` concept so they can automatically land on the correct day.
+
+### Sunday weekly rollover
+- Sunday is treated as the boundary for the next Monday–Saturday dispatch week.
+- When the app is opened in a new work week, completed jobs from the old week move into **Archive**.
+- Unfinished old jobs are **not deleted**. They become **Carryover Jobs** and remain visible until handled.
+- The rollover also works if the app was not opened on Sunday; it is applied the next time the app opens.
+
+### Weekly Archive
+- Archived jobs are grouped by their original work week.
+- A job can also be archived manually at any time.
+- Archived jobs can still be opened, viewed, mapped, and shared as PDFs.
+- Archived jobs can be restored to the current week.
+- Permanent deletion is available behind a confirmation prompt.
+
+### Apple Maps directions
+- Job cards now show the full **Lake Address** and include a **Maps** button.
+- The service sheet also has a prominent **Open Lake Address in Maps** button plus an inline **Directions** button beside Lake Address.
+- Directions always use the Lake Address fields, not the billing address.
+
+### Demo office import
+- **Simulate Office Import** now loads a sample Monday–Saturday week for the selected crew so the weekly workflow can be tested immediately.
+
+## Existing Version 1.1 features retained
 
 - Crew selector for **HHBLACK, HHBLUE, HHGREEN, and HHRED**
-- Crew-specific job list
-- Simulated Microsoft Access / office import
-- Locked customer, address, lift/equipment, and previous-service information
+- Locked/prefilled customer, address, lift/equipment, and service-history information
 - Crew-entered technicians, call status, arrival/leave times, items used, work performed, and notes
 - Separate **Take Photo** and **Upload Photos** controls
-- Multiple existing photos can be selected from an iPhone/iPad/desktop photo library
-- Local device storage for the prototype
-- Draft / In Progress / Completed job status
-- Home Screen PWA support and basic offline loading
+- Multiple photo selection
+- Local device storage
+- Assigned / In Progress / Completed statuses
+- Direct PDF creation and iPhone/iPad Share-sheet workflow when supported
+- HydroHoist service-sheet-style completed-job PDF
+- PDF filename format: `Customer Name M-D-Y.pdf`
+- HydroHoist of the Carolinas branding and Home Screen PWA support
+- Basic offline loading
 
-## Revised in this V1.1 package
+## Data migration
 
-### Direct PDF sharing on iPhone/iPad
-The **Share PDF** button now creates a real PDF file inside the web app instead of opening the browser Print screen first.
+Version 1.2 intentionally keeps the existing local-storage key (`hhc-job-tracker-v1`) so an iPhone/iPad that already used V1.1 can keep its locally saved jobs. Older jobs are normalized with the new scheduling fields automatically.
 
-On compatible iPhone/iPad browsers and Home Screen PWAs, it opens the native iOS **Share sheet** so the PDF can be sent by Messages, Mail, AirDrop, Files, etc.
+## Prototype limitation
 
-If file sharing is unavailable in a browser, the app falls back to downloading the PDF.
+Photos and archived records are still stored locally in the browser/PWA. A long-running production archive with many photos should move to cloud storage when the office synchronization phase is built, because browser local storage is finite.
 
-### Office-friendly PDF
-The PDF's first page is generated in the familiar HydroHoist service-sheet style, with:
-- Customer information
-- Lake and billing addresses
-- Boat / slip information
-- Job number, technicians, call status, arrival/leave time
-- Items used
-- Lift/equipment information
-- Previous service calls
-- Work performed / notes
-
-Uploaded job photos are placed on additional PDF pages so the service sheet remains clean and familiar to office staff.
-
-Filename format:
-`Customer Name M-D-Y.pdf`
-
-Example:
-`Roy Holmes 8-16-2026.pdf`
-
-### HydroHoist branding
-The app now uses the HydroHoist of the Carolinas **flag mark supplied by the user**:
-- In the app interface
-- As the Home Screen / PWA icon
-- In exported PDFs
-
-## Still mocked in V1.1
+## Still mocked
 
 - Real Microsoft Access integration
 - Office-to-crew cloud synchronization
 - User authentication
-- Cloud photo backup
+- Cloud photo/archive backup
 - Cross-device synchronization
 - Sending completed records directly back into Access
 
-## Updating the GitHub Pages app
+## Updating GitHub Pages
 
 Replace/upload these files in the root of the `HHC-Job-tracker` repository:
 
@@ -73,6 +78,6 @@ Replace/upload these files in the root of the `HHC-Job-tracker` repository:
 - `apple-touch-icon.png`
 - `icon.svg` (optional fallback)
 
-Then commit the changes to `main`.
+Commit the changes to `main`.
 
-Important: because the service worker is cached, after GitHub Pages redeploys you may need to close and reopen the Home Screen app once before the new V1.1 appearance is visible.
+Because Version 1.2 changes the service-worker cache name, the new build should replace V1.1 after GitHub Pages deploys. If the Home Screen app still shows the old version, fully close it and reopen it once.

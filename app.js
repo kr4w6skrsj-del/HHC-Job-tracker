@@ -1,6 +1,14 @@
 const CREWS = ["HHBLACK","HHBLUE","HHGREEN","HHRED"];
 const STORAGE_KEY = "hhc-job-tracker-v1";
 const CREW_KEY = "hhc-selected-crew";
+const DAY_DEFS = [
+  { index: 1, short: "MON", long: "Monday" },
+  { index: 2, short: "TUE", long: "Tuesday" },
+  { index: 3, short: "WED", long: "Wednesday" },
+  { index: 4, short: "THU", long: "Thursday" },
+  { index: 5, short: "FRI", long: "Friday" },
+  { index: 6, short: "SAT", long: "Saturday" }
+];
 
 const demoJob = {
   id: "1042",
@@ -8,10 +16,10 @@ const demoJob = {
   customerName: "DEMO CUSTOMER",
   email: "demo@example.com",
   phone: "704-555-0142",
-  lakeAddress: "Lake Norman",
+  lakeAddress: "Jetton Park",
   lakeState: "NC",
-  lakeCity: "Denver",
-  lakeZip: "28037",
+  lakeCity: "Cornelius",
+  lakeZip: "28031",
   billingAddress: "123 Example Rd",
   billingState: "NC",
   billingCity: "Denver",
@@ -21,7 +29,9 @@ const demoJob = {
   boatRamp: "NEIGHBOR",
   slipLocation: "MAIN DOCK",
   jobNo: "1042",
-  jobDay: new Date().toLocaleDateString("en-US", {weekday:"short", month:"short", day:"numeric", year:"numeric"}).toUpperCase(),
+  jobDay: "",
+  scheduledDate: "",
+  weekKey: "",
   techs: "",
   callRequired: "YES",
   arrive: "",
@@ -50,25 +60,59 @@ const demoJob = {
 
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return {jobs: []};
-  try { return JSON.parse(raw); } catch { return {jobs: []}; }
+  if (!raw) return { jobs: [], archives: [], currentWeekKey: "" };
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      ...parsed,
+      jobs: Array.isArray(parsed.jobs) ? parsed.jobs : [],
+      archives: Array.isArray(parsed.archives) ? parsed.archives : [],
+      currentWeekKey: parsed.currentWeekKey || ""
+    };
+  } catch {
+    return { jobs: [], archives: [], currentWeekKey: "" };
+  }
 }
+
+function persistState(pulse=true) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    if (pulse) pulseSaved();
+    return true;
+  } catch (err) {
+    console.error(err);
+    alert("This device is running out of local app storage. Share any needed PDFs and remove old photos/jobs, or move this build to cloud storage before adding more photos.");
+    return false;
+  }
+}
+
 function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  pulseSaved();
+  return persistState(true);
 }
+
 let state = loadState();
 let currentCrew = localStorage.getItem(CREW_KEY);
 let currentJobId = null;
+let currentJobSource = "active";
+let previousView = "jobs";
+let selectedDay = defaultSelectedDay();
 
 const crewGate = document.getElementById("crewGate");
 const jobsView = document.getElementById("jobsView");
+const archiveView = document.getElementById("archiveView");
 const jobDetail = document.getElementById("jobDetail");
 const crewTitle = document.getElementById("crewTitle");
 const crewBadge = document.getElementById("crewBadge");
 const jobList = document.getElementById("jobList");
+const completedJobList = document.getElementById("completedJobList");
+const carryoverList = document.getElementById("carryoverList");
+const dayTabs = document.getElementById("dayTabs");
 const syncPill = document.getElementById("syncPill");
+const jobForm = document.getElementById("jobForm");
 
+migrateAndRollover();
+
+// Crew selection and top-level navigation.
 document.querySelectorAll(".crew-btn").forEach(btn => {
   btn.addEventListener("click", () => selectCrew(btn.dataset.crew));
 });
@@ -77,25 +121,33 @@ document.getElementById("switchCrewBtn").addEventListener("click", () => {
   currentCrew = null;
   showCrewGate();
 });
+document.getElementById("archiveBtn").addEventListener("click", showArchive);
+document.getElementById("archiveBackBtn").addEventListener("click", showJobs);
+document.getElementById("backBtn").addEventListener("click", () => {
+  if (previousView === "archive") showArchive();
+  else showJobs();
+});
+
+// Office-import simulation now demonstrates a full Monday-Saturday dispatch week.
 document.getElementById("demoImportBtn").addEventListener("click", () => {
-  const exists = state.jobs.some(j => j.id === demoJob.id && j.crew === currentCrew);
-  if (!exists) {
-    const imported = structuredClone(demoJob);
-    imported.crew = currentCrew;
-    imported.id = String(Date.now()).slice(-6);
-    imported.jobNo = imported.id;
-    state.jobs.unshift(imported);
-    saveState();
-  }
+  importDemoWeek();
   renderJobs();
 });
-document.getElementById("backBtn").addEventListener("click", showJobs);
+
+// Job controls.
 document.getElementById("saveDraftBtn").addEventListener("click", () => {
   saveCurrentForm("In Progress");
 });
 document.getElementById("completeBtn").addEventListener("click", () => {
   saveCurrentForm("Completed");
 });
+document.getElementById("reopenBtn").addEventListener("click", reopenCurrentJob);
+document.getElementById("archiveJobBtn").addEventListener("click", archiveCurrentJob);
+document.getElementById("restoreJobBtn").addEventListener("click", restoreCurrentJob);
+document.getElementById("deleteJobBtn").addEventListener("click", deleteCurrentJob);
+document.getElementById("mapsBtn").addEventListener("click", () => openAppleMaps(getCurrentJob()));
+document.getElementById("lakeMapsBtn").addEventListener("click", () => openAppleMaps(getCurrentJob()));
+
 document.getElementById("printBtn").addEventListener("click", async () => {
   saveCurrentForm();
   const job = getCurrentJob();
@@ -130,6 +182,7 @@ document.getElementById("printBtn").addEventListener("click", async () => {
     button.textContent = oldText;
   }
 });
+
 document.querySelectorAll(".time-btn").forEach(btn => {
   btn.addEventListener("click", () => {
     const input = document.getElementById(btn.dataset.timeTarget);
@@ -147,70 +200,215 @@ document.getElementById("photoLibraryInput").addEventListener("change", async (e
 function selectCrew(crew) {
   currentCrew = crew;
   localStorage.setItem(CREW_KEY, crew);
+  selectedDay = defaultSelectedDay();
   showJobs();
 }
+
 function showCrewGate() {
   crewGate.classList.remove("hidden");
   jobsView.classList.add("hidden");
+  archiveView.classList.add("hidden");
   jobDetail.classList.add("hidden");
 }
+
 function showJobs() {
   if (!currentCrew) return showCrewGate();
+  previousView = "jobs";
   crewGate.classList.add("hidden");
   jobsView.classList.remove("hidden");
+  archiveView.classList.add("hidden");
   jobDetail.classList.add("hidden");
   crewTitle.textContent = currentCrew;
   renderJobs();
 }
-function showJob(id) {
-  currentJobId = id;
-  const job = getCurrentJob();
-  if (!job) return showJobs();
+
+function showArchive() {
+  if (!currentCrew) return showCrewGate();
+  previousView = "archive";
+  crewGate.classList.add("hidden");
   jobsView.classList.add("hidden");
+  archiveView.classList.remove("hidden");
+  jobDetail.classList.add("hidden");
+  document.getElementById("archiveCrewTitle").textContent = `${currentCrew} Archive`;
+  renderArchive();
+}
+
+function showJob(id, source="active") {
+  currentJobId = id;
+  currentJobSource = source;
+  previousView = source === "archive" ? "archive" : "jobs";
+  const job = getCurrentJob();
+  if (!job) return previousView === "archive" ? showArchive() : showJobs();
+  jobsView.classList.add("hidden");
+  archiveView.classList.add("hidden");
   crewGate.classList.add("hidden");
   jobDetail.classList.remove("hidden");
   fillForm(job);
 }
+
 function renderJobs() {
-  const jobs = state.jobs.filter(j => j.crew === currentCrew);
-  jobList.innerHTML = "";
+  const weekKey = getOperationalWeekKey(new Date());
+  const crewJobs = state.jobs.filter(j => j.crew === currentCrew);
+  const thisWeekJobs = crewJobs.filter(j => !j.carryover && getJobWeekKey(j) === weekKey);
+  const carryovers = crewJobs.filter(j => j.carryover);
+
+  document.getElementById("weekRange").textContent = formatWeekRange(weekKey);
+  const archiveCount = state.archives.filter(j => j.crew === currentCrew).length;
+  document.getElementById("archiveBtn").textContent = archiveCount ? `Archive (${archiveCount})` : "Archive";
+
+  renderDayTabs(thisWeekJobs);
+  renderCarryovers(carryovers);
+
+  const selectedJobs = thisWeekJobs
+    .filter(j => getScheduledDayIndex(j) === selectedDay)
+    .sort((a,b) => String(a.jobNo).localeCompare(String(b.jobNo), undefined, {numeric:true}));
+  const remaining = selectedJobs.filter(j => j.status !== "Completed");
+  const completed = selectedJobs.filter(j => j.status === "Completed");
+  const dayDef = DAY_DEFS.find(d => d.index === selectedDay) || DAY_DEFS[0];
+  const dayDate = dateForDayIndex(weekKey, selectedDay);
+
+  document.getElementById("dayHeading").textContent = `${dayDef.long} • ${formatShortDate(dayDate)}`;
+  document.getElementById("daySummary").textContent = `${remaining.length} remaining • ${completed.length} completed`;
+
+  renderJobCollection(jobList, remaining, {
+    emptyTitle: `No ${dayDef.long} jobs remaining`,
+    emptyText: completed.length ? "Finished jobs are tucked into Completed below." : "The office has not assigned anything to this day yet."
+  });
+
+  const completedSection = document.getElementById("completedSection");
+  document.getElementById("completedSummary").textContent = `Completed (${completed.length})`;
+  completedSection.classList.toggle("hidden", completed.length === 0);
+  renderJobCollection(completedJobList, completed, { completed: true });
+
+  const remainingWeek = thisWeekJobs.filter(j => j.status !== "Completed").length + carryovers.filter(j => j.status !== "Completed").length;
+  const completedWeek = thisWeekJobs.filter(j => j.status === "Completed").length;
+  document.getElementById("weekStats").textContent = `${remainingWeek} remaining this week • ${completedWeek} completed`;
+}
+
+function renderDayTabs(jobs) {
+  dayTabs.innerHTML = "";
+  DAY_DEFS.forEach(day => {
+    const dayJobs = jobs.filter(j => getScheduledDayIndex(j) === day.index);
+    const remaining = dayJobs.filter(j => j.status !== "Completed").length;
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `day-tab${selectedDay === day.index ? " active" : ""}`;
+    btn.innerHTML = `<span>${day.short}</span><strong>${remaining}</strong>`;
+    btn.setAttribute("aria-label", `${day.long}, ${remaining} jobs remaining`);
+    btn.addEventListener("click", () => {
+      selectedDay = day.index;
+      renderJobs();
+    });
+    dayTabs.appendChild(btn);
+  });
+}
+
+function renderCarryovers(jobs) {
+  const section = document.getElementById("carryoverSection");
   if (!jobs.length) {
-    jobList.innerHTML = `
-      <div class="panel" style="padding:24px;text-align:center">
-        <h2>No jobs assigned</h2>
-        <p class="muted">Tap “Simulate Office Import” to see the Version 1 workflow.</p>
+    section.classList.add("hidden");
+    carryoverList.innerHTML = "";
+    return;
+  }
+  section.classList.remove("hidden");
+  document.getElementById("carryoverCount").textContent = jobs.length;
+  renderJobCollection(carryoverList, jobs, { carryover: true });
+}
+
+function renderJobCollection(container, jobs, options={}) {
+  container.innerHTML = "";
+  if (!jobs.length) {
+    if (!options.emptyTitle) return;
+    container.innerHTML = `
+      <div class="empty-state">
+        <strong>${esc(options.emptyTitle)}</strong>
+        <span>${esc(options.emptyText || "")}</span>
       </div>`;
     return;
   }
-  jobs.forEach(job => {
-    const div = document.createElement("article");
-    div.className = "job-card";
-    div.innerHTML = `
-      <div>
-        <h3>Job #${esc(job.jobNo)} • ${esc(job.customerName)}</h3>
-        <p>${esc(job.lakeCity || job.billingCity || "")}, ${esc(job.lakeState || job.billingState || "")}</p>
-        <p>${esc(job.boat || "")} • ${esc(job.equipment?.[0]?.liftType || "")}</p>
+  jobs.forEach(job => container.appendChild(createJobCard(job, options)));
+}
+
+function createJobCard(job, options={}) {
+  const archived = !!options.archived;
+  const article = document.createElement("article");
+  article.className = `job-card${job.status === "Completed" ? " completed-card" : ""}${options.carryover ? " carryover-card" : ""}`;
+  const address = buildLakeAddress(job);
+  const scheduleLine = archived
+    ? `${formatJobDate(job)} • ${esc(job.crew || "")}`
+    : options.carryover
+      ? `Carryover from ${formatOriginalDate(job)}`
+      : formatJobDate(job);
+
+  article.innerHTML = `
+    <div class="job-card-main">
+      <div class="job-card-kicker">${esc(scheduleLine)}</div>
+      <h3>${esc(job.customerName)} <span>• Job #${esc(job.jobNo)}</span></h3>
+      <p class="lake-line"><strong>Lake:</strong> ${esc(address || "No lake address on file")}</p>
+      <p>${esc(job.boat || "")} ${job.equipment?.[0]?.liftType ? `• ${esc(job.equipment[0].liftType)}` : ""}</p>
+    </div>
+    <div class="card-actions">
+      <span class="status ${archived ? "archived" : statusClass(job.status)}">${archived ? "Archived" : esc(job.status)}</span>
+      <div class="card-button-row">
+        <button type="button" class="maps-card-btn" data-map ${address ? "" : "disabled"}>🗺 Maps</button>
+        <button type="button" class="primary-btn" data-open>Open Job</button>
       </div>
-      <div class="card-actions">
-        <span class="status ${statusClass(job.status)}">${esc(job.status)}</span>
-        <div style="margin-top:9px"><button class="primary-btn">Open Job</button></div>
-      </div>`;
-    div.querySelector("button").addEventListener("click", () => showJob(job.id));
-    jobList.appendChild(div);
+    </div>`;
+
+  article.querySelector("[data-open]").addEventListener("click", () => showJob(job.id, archived ? "archive" : "active"));
+  const mapButton = article.querySelector("[data-map]");
+  mapButton.addEventListener("click", () => openAppleMaps(job));
+  return article;
+}
+
+function renderArchive() {
+  const archiveList = document.getElementById("archiveList");
+  const jobs = state.archives
+    .filter(j => j.crew === currentCrew)
+    .sort((a,b) => String(b.archivedAt || b.scheduledDate || "").localeCompare(String(a.archivedAt || a.scheduledDate || "")));
+
+  archiveList.innerHTML = "";
+  document.getElementById("archiveCountText").textContent = `${jobs.length} archived job${jobs.length === 1 ? "" : "s"}`;
+  if (!jobs.length) {
+    archiveList.innerHTML = `<div class="panel archive-empty"><h2>No archived jobs yet</h2><p class="muted">Completed jobs will move here automatically when the work week rolls over on Sunday, or you can archive a job manually.</p></div>`;
+    return;
+  }
+
+  const groups = new Map();
+  jobs.forEach(job => {
+    const key = job.archiveWeekKey || job.weekKey || getJobWeekKey(job);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(job);
+  });
+
+  [...groups.entries()].sort((a,b) => b[0].localeCompare(a[0])).forEach(([weekKey, groupJobs], idx) => {
+    const details = document.createElement("details");
+    details.className = "archive-week";
+    details.open = idx === 0;
+    details.innerHTML = `<summary><span>${esc(formatWeekRange(weekKey))}</span><span>${groupJobs.length} job${groupJobs.length === 1 ? "" : "s"}</span></summary><div class="archive-week-list"></div>`;
+    const list = details.querySelector(".archive-week-list");
+    groupJobs.forEach(job => list.appendChild(createJobCard(job, { archived: true })));
+    archiveList.appendChild(details);
   });
 }
-function statusClass(status) {
-  return status === "Completed" ? "completed" : status === "In Progress" ? "progress" : "assigned";
-}
+
 function fillForm(job) {
+  const archived = currentJobSource === "archive";
   crewBadge.textContent = job.crew;
   document.getElementById("jobNumberTitle").textContent = `Job #${job.jobNo}`;
-  setStatus(job.status);
+  document.getElementById("detailSchedule").textContent = archived ? `ARCHIVED • ${formatJobDate(job)}` : formatJobDate(job).toUpperCase();
+  setStatus(archived ? "Archived" : job.status);
 
   const fields = ["customerName","customerId","email","phone","lakeAddress","lakeState","lakeCity","lakeZip",
     "billingAddress","billingState","billingCity","billingZip","boat","slipWidth","boatRamp","slipLocation",
     "jobNo","jobDay","techs","callRequired","arrive","left","itemsUsed","workNotes"];
   fields.forEach(id => document.getElementById(id).value = job[id] ?? "");
+
+  const address = buildLakeAddress(job);
+  [document.getElementById("mapsBtn"), document.getElementById("lakeMapsBtn")].forEach(btn => {
+    btn.disabled = !address;
+    btn.title = address || "No lake address on file";
+  });
 
   const equipmentBody = document.getElementById("equipmentBody");
   equipmentBody.innerHTML = "";
@@ -236,49 +434,177 @@ function fillForm(job) {
     historyBody.appendChild(tr);
   });
   renderPhotos(job);
+  applyDetailMode(job, archived);
 }
+
+function applyDetailMode(job, archived) {
+  jobForm.classList.toggle("archived-mode", archived);
+  ["techs","callRequired","arrive","left","itemsUsed","workNotes"].forEach(id => {
+    document.getElementById(id).disabled = archived;
+  });
+  document.querySelectorAll(".time-btn").forEach(btn => btn.disabled = archived);
+  document.getElementById("cameraInput").disabled = archived;
+  document.getElementById("photoLibraryInput").disabled = archived;
+
+  const saveBtn = document.getElementById("saveDraftBtn");
+  const completeBtn = document.getElementById("completeBtn");
+  const reopenBtn = document.getElementById("reopenBtn");
+  const archiveBtn = document.getElementById("archiveJobBtn");
+  const restoreBtn = document.getElementById("restoreJobBtn");
+
+  saveBtn.classList.toggle("hidden", archived || job.status === "Completed");
+  completeBtn.classList.toggle("hidden", archived || job.status === "Completed");
+  reopenBtn.classList.toggle("hidden", archived || job.status !== "Completed");
+  archiveBtn.classList.toggle("hidden", archived);
+  restoreBtn.classList.toggle("hidden", !archived);
+}
+
 function getCurrentJob() {
-  return state.jobs.find(j => j.id === currentJobId);
+  const source = currentJobSource === "archive" ? state.archives : state.jobs;
+  return source.find(j => j.id === currentJobId);
 }
+
 function saveCurrentForm(forceStatus, silent=false) {
+  if (currentJobSource === "archive") return;
   const job = getCurrentJob();
   if (!job) return;
   ["techs","callRequired","arrive","left","itemsUsed","workNotes"].forEach(id => {
     job[id] = document.getElementById(id).value;
   });
   if (forceStatus) job.status = forceStatus;
+
+  if (forceStatus === "Completed") {
+    job.completedAt = new Date().toISOString();
+    // A carryover completed this week joins today's completed jobs.
+    if (job.carryover) {
+      const today = new Date();
+      job.carryover = false;
+      job.scheduledDate = toDateKey(today);
+      job.weekKey = getOperationalWeekKey(today);
+      job.jobDay = formatJobDay(today);
+    }
+  }
+
   saveState();
   setStatus(job.status);
+  applyDetailMode(job, false);
   if (!silent && forceStatus === "Completed") {
-    alert("Job marked completed and saved on this device.");
+    alert("Job marked completed. It will stay under this day's Completed section until the weekly archive rollover.");
   }
 }
+
+function reopenCurrentJob() {
+  if (currentJobSource !== "active") return;
+  const job = getCurrentJob();
+  if (!job) return;
+  job.status = "In Progress";
+  job.completedAt = "";
+  saveState();
+  fillForm(job);
+}
+
+function archiveCurrentJob() {
+  if (currentJobSource !== "active") return;
+  const job = getCurrentJob();
+  if (!job) return;
+  if (!confirm(`Archive Job #${job.jobNo} for ${job.customerName}? You can restore it later from Archive.`)) return;
+  archiveJobById(job.id);
+  showJobs();
+}
+
+function archiveJobById(id, archiveWeekKey="") {
+  const index = state.jobs.findIndex(j => j.id === id);
+  if (index < 0) return;
+  const job = state.jobs[index];
+  const archived = {
+    ...job,
+    archiveWeekKey: archiveWeekKey || job.weekKey || getJobWeekKey(job),
+    archivedAt: new Date().toISOString(),
+    carryover: false
+  };
+  state.jobs.splice(index, 1);
+  const existing = state.archives.findIndex(j => j.id === archived.id);
+  if (existing >= 0) state.archives[existing] = archived;
+  else state.archives.push(archived);
+  saveState();
+}
+
+function restoreCurrentJob() {
+  if (currentJobSource !== "archive") return;
+  const job = getCurrentJob();
+  if (!job) return;
+  const idx = state.archives.findIndex(j => j.id === job.id);
+  if (idx < 0) return;
+  const today = new Date();
+  const restored = {
+    ...job,
+    scheduledDate: toDateKey(today),
+    weekKey: getOperationalWeekKey(today),
+    jobDay: formatJobDay(today),
+    carryover: false,
+    archivedAt: "",
+    archiveWeekKey: ""
+  };
+  state.archives.splice(idx, 1);
+  state.jobs.push(restored);
+  saveState();
+  currentJobSource = "active";
+  currentJobId = restored.id;
+  previousView = "jobs";
+  fillForm(restored);
+}
+
+function deleteCurrentJob() {
+  const job = getCurrentJob();
+  if (!job) return;
+  if (!confirm(`Permanently delete Job #${job.jobNo} for ${job.customerName}? This cannot be undone on this device.`)) return;
+  const collection = currentJobSource === "archive" ? state.archives : state.jobs;
+  const idx = collection.findIndex(j => j.id === job.id);
+  if (idx >= 0) collection.splice(idx, 1);
+  saveState();
+  if (previousView === "archive") showArchive();
+  else showJobs();
+}
+
 function setStatus(status) {
   const el = document.getElementById("jobStatus");
   el.textContent = status;
   el.className = `status ${statusClass(status)}`;
 }
+
+function statusClass(status) {
+  if (status === "Archived") return "archived";
+  return status === "Completed" ? "completed" : status === "In Progress" ? "progress" : "assigned";
+}
+
 function renderPhotos(job) {
   const grid = document.getElementById("photoGrid");
   grid.innerHTML = "";
   (job.photos || []).forEach((src, idx) => {
     const card = document.createElement("div");
     card.className = "photo-card";
-    card.innerHTML = `<img alt="Job photo ${idx+1}" src="${src}"><button type="button" aria-label="Remove photo">×</button>`;
-    card.querySelector("button").addEventListener("click", () => {
-      job.photos.splice(idx,1);
-      saveState();
-      renderPhotos(job);
-    });
+    const canRemove = currentJobSource !== "archive";
+    card.innerHTML = `<img alt="Job photo ${idx+1}" src="${src}">${canRemove ? '<button type="button" aria-label="Remove photo">×</button>' : ""}`;
+    const removeBtn = card.querySelector("button");
+    if (removeBtn) {
+      removeBtn.addEventListener("click", () => {
+        job.photos.splice(idx,1);
+        saveState();
+        renderPhotos(job);
+      });
+    }
     grid.appendChild(card);
   });
 }
+
 async function addPhotosFromInput(input) {
+  if (currentJobSource === "archive") return;
   const files = [...(input.files || [])];
   if (!files.length) return;
 
   const job = getCurrentJob();
   if (!job) return;
+  job.photos = Array.isArray(job.photos) ? job.photos : [];
 
   for (const file of files) {
     if (!file.type.startsWith("image/")) continue;
@@ -290,6 +616,225 @@ async function addPhotosFromInput(input) {
   input.value = "";
 }
 
+function openAppleMaps(job) {
+  if (!job) return;
+  const address = buildLakeAddress(job);
+  if (!address) {
+    alert("There is no Lake Address on this job yet.");
+    return;
+  }
+  const url = `https://maps.apple.com/?daddr=${encodeURIComponent(address)}&dirflg=d`;
+  window.location.href = url;
+}
+
+function buildLakeAddress(job) {
+  if (!job) return "";
+  return [job.lakeAddress, job.lakeCity, job.lakeState, job.lakeZip]
+    .map(v => String(v || "").trim())
+    .filter(Boolean)
+    .join(", ");
+}
+
+function migrateAndRollover() {
+  const now = new Date();
+  const currentWeekKey = getOperationalWeekKey(now);
+  let changed = false;
+
+  state.jobs = (state.jobs || []).map(job => {
+    const normalized = normalizeJob(job);
+    if (JSON.stringify(job) !== JSON.stringify(normalized)) changed = true;
+    return normalized;
+  });
+  state.archives = (state.archives || []).map(job => normalizeJob(job, true));
+
+  // Process anything from an older dispatch week. This also safely migrates V1.1 data.
+  const active = [];
+  state.jobs.forEach(job => {
+    const jobWeek = getJobWeekKey(job);
+    if (jobWeek && jobWeek < currentWeekKey) {
+      if (job.status === "Completed") {
+        const archived = {
+          ...job,
+          archiveWeekKey: jobWeek,
+          archivedAt: job.archivedAt || now.toISOString(),
+          carryover: false
+        };
+        const exists = state.archives.some(a => a.id === archived.id);
+        if (!exists) state.archives.push(archived);
+      } else {
+        active.push({
+          ...job,
+          originalScheduledDate: job.originalScheduledDate || job.scheduledDate,
+          carryover: true,
+          weekKey: currentWeekKey
+        });
+      }
+      changed = true;
+    } else {
+      active.push(job);
+    }
+  });
+  state.jobs = active;
+
+  if (state.currentWeekKey !== currentWeekKey) {
+    state.currentWeekKey = currentWeekKey;
+    changed = true;
+  }
+
+  if (changed) persistState(false);
+}
+
+function normalizeJob(job, archived=false) {
+  const out = { ...job };
+  out.photos = Array.isArray(out.photos) ? out.photos : [];
+  out.equipment = Array.isArray(out.equipment) ? out.equipment : [];
+  out.history = Array.isArray(out.history) ? out.history : [];
+  out.status = out.status || "Assigned";
+
+  let scheduled = parseJobDate(out.scheduledDate) || parseJobDate(out.jobDay);
+  if (!scheduled) scheduled = new Date();
+  if (!out.scheduledDate) out.scheduledDate = toDateKey(scheduled);
+  if (!out.jobDay) out.jobDay = formatJobDay(scheduled);
+  if (!out.weekKey) out.weekKey = getOperationalWeekKey(scheduled);
+  if (archived && !out.archiveWeekKey) out.archiveWeekKey = out.weekKey;
+  return out;
+}
+
+function importDemoWeek() {
+  const weekKey = getOperationalWeekKey(new Date());
+  const alreadyImported = state.jobs.some(j => j.crew === currentCrew && j.demoBatchWeek === weekKey);
+  if (alreadyImported) {
+    alert("This crew already has the V1.2 demo week loaded.");
+    return;
+  }
+
+  const locations = [
+    ["JETTON PARK DEMO", "Jetton Park", "Cornelius", "28031"],
+    ["BLYTHE LANDING DEMO", "Blythe Landing", "Huntersville", "28078"],
+    ["BEATTY'S FORD DEMO", "Beatty's Ford Park", "Denver", "28037"],
+    ["RAMSEY CREEK DEMO", "Ramsey Creek Park", "Cornelius", "28031"],
+    ["QUEENS LANDING DEMO", "Queens Landing", "Mooresville", "28117"],
+    ["STATE PARK DEMO", "Lake Norman State Park", "Troutman", "28166"]
+  ];
+
+  locations.forEach((loc, idx) => {
+    const dayIndex = idx + 1;
+    const scheduled = dateForDayIndex(weekKey, dayIndex);
+    const imported = structuredClone(demoJob);
+    imported.id = `${Date.now()}-${idx}`;
+    imported.jobNo = String(2101 + idx);
+    imported.customerId = String(3001 + idx);
+    imported.customerName = loc[0];
+    imported.lakeAddress = loc[1];
+    imported.lakeCity = loc[2];
+    imported.lakeState = "NC";
+    imported.lakeZip = loc[3];
+    imported.crew = currentCrew;
+    imported.scheduledDate = toDateKey(scheduled);
+    imported.jobDay = formatJobDay(scheduled);
+    imported.weekKey = weekKey;
+    imported.demoBatchWeek = weekKey;
+    imported.status = idx === 0 ? "In Progress" : "Assigned";
+    state.jobs.push(imported);
+  });
+  saveState();
+}
+
+function defaultSelectedDay() {
+  const day = new Date().getDay();
+  return day >= 1 && day <= 6 ? day : 1;
+}
+
+function getOperationalWeekStart(input) {
+  const d = startOfLocalDay(input instanceof Date ? input : new Date(input));
+  const weekday = d.getDay();
+  if (weekday === 0) {
+    d.setDate(d.getDate() + 1); // Sunday belongs to the upcoming Monday-Saturday dispatch week.
+  } else {
+    d.setDate(d.getDate() - (weekday - 1));
+  }
+  return d;
+}
+
+function getOperationalWeekKey(input) {
+  return toDateKey(getOperationalWeekStart(input));
+}
+
+function getJobWeekKey(job) {
+  if (job.weekKey) return job.weekKey;
+  const d = parseJobDate(job.scheduledDate) || parseJobDate(job.jobDay) || new Date();
+  return getOperationalWeekKey(d);
+}
+
+function dateForDayIndex(weekKey, dayIndex) {
+  const monday = parseJobDate(weekKey) || getOperationalWeekStart(new Date());
+  const d = startOfLocalDay(monday);
+  d.setDate(d.getDate() + Math.max(0, dayIndex - 1));
+  return d;
+}
+
+function getScheduledDayIndex(job) {
+  const d = parseJobDate(job.scheduledDate) || parseJobDate(job.jobDay);
+  const day = d ? d.getDay() : 1;
+  return day >= 1 && day <= 6 ? day : 1;
+}
+
+function parseJobDate(value) {
+  if (!value) return null;
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return startOfLocalDay(value);
+  const raw = String(value).trim();
+  let match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]), 12);
+  match = raw.match(/(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})/);
+  if (match) {
+    let year = Number(match[3]);
+    if (year < 100) year += year >= 70 ? 1900 : 2000;
+    return new Date(year, Number(match[1]) - 1, Number(match[2]), 12);
+  }
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : startOfLocalDay(parsed);
+}
+
+function startOfLocalDay(date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12);
+}
+
+function toDateKey(date) {
+  const d = startOfLocalDay(date);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+}
+
+function formatJobDay(date) {
+  const day = DAY_DEFS.find(d => d.index === date.getDay());
+  const label = day ? day.short : "SUN";
+  const yy = String(date.getFullYear()).slice(-2);
+  return `${label} - ${date.getMonth()+1}/${date.getDate()}/${yy}`;
+}
+
+function formatJobDate(job) {
+  const d = parseJobDate(job.scheduledDate) || parseJobDate(job.jobDay);
+  if (!d) return job.jobDay || "Unscheduled";
+  const day = DAY_DEFS.find(x => x.index === d.getDay());
+  return `${day ? day.long : "Sunday"}, ${d.toLocaleDateString("en-US", {month:"short", day:"numeric"})}`;
+}
+
+function formatOriginalDate(job) {
+  const d = parseJobDate(job.originalScheduledDate) || parseJobDate(job.scheduledDate);
+  return d ? d.toLocaleDateString("en-US", {month:"short", day:"numeric"}) : "last week";
+}
+
+function formatShortDate(date) {
+  return date.toLocaleDateString("en-US", {month:"short", day:"numeric"});
+}
+
+function formatWeekRange(weekKey) {
+  const monday = parseJobDate(weekKey) || getOperationalWeekStart(new Date());
+  const saturday = new Date(monday);
+  saturday.setDate(saturday.getDate() + 5);
+  const start = monday.toLocaleDateString("en-US", {month:"short", day:"numeric"});
+  const end = saturday.toLocaleDateString("en-US", {month:"short", day:"numeric", year:"numeric"});
+  return `${start} – ${end}`;
+}
 
 const PDF_BLUE = "#0a6484";
 const PDF_NAVY = "#123b6d";

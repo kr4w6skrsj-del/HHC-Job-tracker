@@ -500,3 +500,260 @@ details summary {
   }
   .photo-card button { display:none; }
 }
+
+/* ===== Version 1.2 weekly dispatch + archive ===== */
+.week-head { align-items:flex-end; }
+.week-range {
+  margin-top:4px;
+  color:var(--muted);
+  font-size:14px;
+  font-weight:700;
+}
+.head-actions, .detail-manage-actions, .card-button-row {
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.weekly-toolbar { justify-content:flex-start; }
+.section-heading {
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:18px;
+  margin-bottom:12px;
+}
+.section-heading h2 { margin-bottom:0; }
+.section-heading p { margin:0; text-align:right; }
+.count-badge {
+  display:inline-flex;
+  min-width:27px;
+  height:27px;
+  align-items:center;
+  justify-content:center;
+  border-radius:999px;
+  background:#fff0cf;
+  color:#785900;
+  font-size:13px;
+  vertical-align:middle;
+}
+.warning-text { color:#8a6200; }
+.carryover-section {
+  background:#fffaf0;
+  border:1px solid #ead8ad;
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:16px;
+}
+.day-tabs {
+  display:grid;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:7px;
+  margin:14px 0;
+  position:sticky;
+  top:68px;
+  z-index:7;
+  padding:7px;
+  background:rgba(238,243,245,.95);
+  backdrop-filter:blur(8px);
+  border-radius:13px;
+}
+.day-tab {
+  border:1px solid #bdcbd1;
+  background:white;
+  color:#33505d;
+  border-radius:11px;
+  padding:10px 6px;
+  min-width:0;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:7px;
+  font-weight:850;
+}
+.day-tab strong {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:23px;
+  height:23px;
+  padding:0 6px;
+  border-radius:999px;
+  background:#edf2f4;
+  font-size:12px;
+}
+.day-tab.active {
+  background:linear-gradient(180deg,#0a6e91,#075a78);
+  border-color:#075a78;
+  color:white;
+  box-shadow:0 5px 14px rgba(7,90,120,.2);
+}
+.day-tab.active strong { background:rgba(255,255,255,.19); }
+.day-board {
+  background:white;
+  border:1px solid var(--border);
+  border-radius:14px;
+  padding:16px;
+}
+.day-heading-row { margin-bottom:14px; }
+.day-summary {
+  padding:8px 11px;
+  border-radius:999px;
+  background:#eef4f6;
+  color:#37525f;
+  font-size:13px;
+  font-weight:750;
+  white-space:nowrap;
+}
+.empty-state {
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:24px;
+  text-align:center;
+  border:1px dashed #c7d3d8;
+  border-radius:12px;
+  background:#fafcfc;
+  color:#40545e;
+}
+.empty-state span { color:var(--muted); font-size:13px; }
+.job-card-main { min-width:0; }
+.job-card-kicker {
+  font-size:11px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  font-weight:850;
+  color:#627680;
+  margin-bottom:4px;
+}
+.job-card h3 span { color:#66808b; font-weight:650; }
+.job-card .lake-line { color:#294854; }
+.completed-card { border-left-color:#5d9e71; background:#fbfefc; }
+.carryover-card { border-left-color:#c58b13; }
+.maps-card-btn, .maps-btn, .maps-inline-btn, .danger-btn {
+  border-radius:10px;
+  padding:10px 13px;
+  font-weight:800;
+}
+.maps-card-btn, .maps-inline-btn {
+  border:1px solid #86a8b7;
+  background:#f6fbfd;
+  color:#075d7b;
+}
+.maps-btn {
+  border:1px solid #075d7b;
+  background:#073e58;
+  color:white;
+  min-height:44px;
+}
+.maps-card-btn:disabled, .maps-btn:disabled, .maps-inline-btn:disabled {
+  opacity:.45;
+  cursor:not-allowed;
+}
+.danger-btn {
+  border:1px solid #d6a7a7;
+  background:#fff7f7;
+  color:#a22d2d;
+}
+.status.archived { background:#e9edf0; color:#4e5e66; }
+.completed-section {
+  border-top:1px solid #d4dfe3;
+  margin-top:15px;
+  padding-top:12px;
+}
+.completed-section > summary {
+  margin:0;
+  padding:9px 2px 12px;
+  font-size:17px;
+}
+.completed-list { margin-top:3px; }
+.detail-tools {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin:-2px 0 12px;
+  padding:10px;
+  background:white;
+  border:1px solid var(--border);
+  border-radius:12px;
+}
+.section-title-with-action {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:4px;
+}
+.section-title-with-action h2 { margin-bottom:0; }
+.maps-inline-btn { padding:7px 10px; font-size:13px; }
+.archived-mode .photo-tools { display:none; }
+.archived-mode textarea:disabled,
+.archived-mode input:disabled,
+.archived-mode select:disabled {
+  opacity:1;
+  -webkit-text-fill-color:#40515a;
+  color:#40515a;
+  background:#f7f9fa;
+}
+.archive-note {
+  display:flex;
+  gap:10px;
+  align-items:center;
+  padding:13px 15px;
+  margin-bottom:14px;
+  font-size:13px;
+}
+.archive-note span { color:var(--muted); }
+.archive-list { display:grid; gap:12px; }
+.archive-empty { padding:24px; text-align:center; }
+.archive-week {
+  background:white;
+  border:1px solid var(--border);
+  border-radius:14px;
+  overflow:hidden;
+}
+.archive-week > summary {
+  margin:0;
+  padding:15px 16px;
+  font-size:17px;
+  background:#f8fafb;
+  border-bottom:1px solid #d9e2e6;
+}
+.archive-week > summary span:last-child {
+  color:var(--muted);
+  font-size:12px;
+}
+.archive-week-list {
+  display:grid;
+  gap:10px;
+  padding:12px;
+}
+
+@media (max-width: 760px) {
+  .week-head { align-items:flex-start; }
+  .head-actions { justify-content:flex-end; }
+  .weekly-toolbar { flex-direction:column; align-items:stretch; }
+  .section-heading { align-items:flex-start; flex-direction:column; gap:5px; }
+  .section-heading p { text-align:left; }
+  .day-tabs {
+    grid-template-columns:repeat(6,64px);
+    overflow-x:auto;
+    justify-content:start;
+    top:60px;
+  }
+  .day-tab { flex-direction:column; gap:3px; padding:8px 4px; }
+  .day-board { padding:12px; }
+  .day-heading-row { flex-direction:row; align-items:center; }
+  .day-summary { white-space:normal; text-align:right; }
+  .card-button-row { justify-content:flex-start; }
+  .detail-tools { align-items:stretch; flex-direction:column; }
+  .maps-btn { width:100%; }
+  .detail-manage-actions { display:grid; grid-template-columns:1fr 1fr; }
+  .detail-manage-actions button { width:100%; }
+  .archive-note { align-items:flex-start; flex-direction:column; }
+}
+
+@media print {
+  .day-tabs, .detail-tools, .maps-inline-btn, .archive-note { display:none !important; }
+}
