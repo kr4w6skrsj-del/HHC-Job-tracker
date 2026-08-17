@@ -2,152 +2,221 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#0b0d10" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="JobClock" />
-  <link rel="manifest" href="manifest.json" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#005b7d" />
+  <title>HHC Job Tracker</title>
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
-  <title>JobClock</title>
+  <link rel="apple-touch-icon" href="icon.svg" />
 </head>
 <body>
-  <main class="app-shell">
-    <header class="app-header">
-      <div>
-        <p class="eyebrow">FIELD WORK LOG</p>
-        <h1>JobClock</h1>
-      </div>
-      <div class="status-pill" id="statusPill">Ready</div>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand-mini">HHC JOB TRACKER</div>
+      <div class="sync-pill" id="syncPill">● Local</div>
     </header>
 
-    <section class="card">
-      <div class="section-heading compact">
-        <div>
-          <p class="eyebrow">CURRENT JOB</p>
-          <h2>Job Details</h2>
+    <main class="shell">
+      <section id="crewGate" class="panel crew-gate">
+        <div class="hero-mark">
+          <div class="wave-mark">≈</div>
+          <div>
+            <h1>HydroHoist</h1>
+            <p>OF THE CAROLINAS</p>
+          </div>
         </div>
-      </div>
-
-      <label class="field">
-        <span>Customer Name</span>
-        <input id="customerName" type="text" placeholder="Customer name" autocomplete="name" />
-      </label>
-
-      <label class="field">
-        <span>Phone Number</span>
-        <input id="phoneNumber" type="tel" inputmode="tel" placeholder="(555) 555-5555" autocomplete="tel" />
-      </label>
-
-      <label class="field">
-        <span>Items Used</span>
-        <textarea id="itemsUsed" rows="4" placeholder="Parts, materials, quantities, etc."></textarea>
-      </label>
-
-      <label class="field">
-        <span>Notes</span>
-        <textarea id="jobNotes" rows="4" placeholder="Work completed, problems found, follow-up needed, etc."></textarea>
-      </label>
-
-      <div id="timePanel" class="time-panel" hidden>
-        <div class="time-row">
-          <span>Started</span>
-          <strong id="startedTime">—</strong>
+        <h2>Select Crew</h2>
+        <p class="muted">Version 1 uses a local crew selector. Cloud login can replace this later.</p>
+        <div class="crew-grid">
+          <button class="crew-btn black" data-crew="HHBLACK">HHBLACK</button>
+          <button class="crew-btn blue" data-crew="HHBLUE">HHBLUE</button>
+          <button class="crew-btn green" data-crew="HHGREEN">HHGREEN</button>
+          <button class="crew-btn red" data-crew="HHRED">HHRED</button>
         </div>
-        <div class="time-row">
-          <span>Stopped</span>
-          <strong id="stoppedTime">Not finished</strong>
+      </section>
+
+      <section id="jobsView" class="hidden">
+        <div class="view-head">
+          <div>
+            <div class="eyebrow">CURRENT CREW</div>
+            <h1 id="crewTitle">HHBLACK</h1>
+          </div>
+          <button class="ghost-btn" id="switchCrewBtn">Switch Crew</button>
         </div>
-      </div>
 
-      <div id="activePhotos" class="photo-section" hidden>
-        <div class="photo-section-heading">
-          <span>Completed Job Photos</span>
-          <span id="activePhotoCount">0 photos</span>
+        <div class="toolbar">
+          <button class="primary-btn" id="demoImportBtn">Simulate Office Import</button>
+          <span class="muted small">This stands in for Microsoft Access → Job Tracker for V1.</span>
         </div>
-        <div id="activePhotoStrip" class="photo-strip"></div>
-        <label class="secondary-button full-width">
-          Add Photos
-          <input id="activePhotoInput" type="file" accept="image/*" multiple hidden />
-        </label>
-      </div>
 
-      <button id="mainButton" class="primary-button" disabled>
-        <span id="mainButtonIcon">▶</span>
-        <span id="mainButtonText">Start Job</span>
-      </button>
+        <div class="job-list" id="jobList"></div>
+      </section>
 
-      <p class="helper" id="helperText">
-        Start and stop times are recorded in Eastern Time.
-      </p>
-    </section>
-
-    <section class="history-section">
-      <div class="section-heading">
-        <div>
-          <p class="eyebrow">COMPLETED WORK</p>
-          <h2>Saved Jobs</h2>
+      <section id="jobDetail" class="hidden">
+        <div class="view-head">
+          <button class="back-btn" id="backBtn">‹ Jobs</button>
+          <div class="job-title">
+            <div class="eyebrow">SERVICE JOB</div>
+            <h1 id="jobNumberTitle">Job #</h1>
+          </div>
+          <span id="jobStatus" class="status assigned">Assigned</span>
         </div>
-        <button id="exportAllButton" class="secondary-button small" hidden>Export All PDF</button>
-      </div>
 
-      <div id="emptyState" class="empty-state">
-        <div class="empty-icon">✓</div>
-        <strong>No completed jobs yet</strong>
-        <span>Finished jobs will appear here.</span>
-      </div>
+        <form id="jobForm">
+          <section class="service-sheet">
+            <div class="sheet-brand">
+              <div class="hero-mark compact">
+                <div class="wave-mark">≈</div>
+                <div>
+                  <h1>HydroHoist</h1>
+                  <p>OF THE CAROLINAS</p>
+                </div>
+              </div>
+              <div class="crew-badge" id="crewBadge">HHBLACK</div>
+            </div>
 
-      <div id="jobList" class="job-list"></div>
-    </section>
-  </main>
+            <div class="field-row top-fields">
+              <label>Name
+                <input id="customerName" readonly />
+              </label>
+              <label>ID
+                <input id="customerId" readonly />
+              </label>
+            </div>
+            <div class="field-row top-fields">
+              <label>Email
+                <input id="email" readonly />
+              </label>
+              <label>Cell Phone
+                <input id="phone" readonly />
+              </label>
+            </div>
 
-  <template id="jobTemplate">
-    <article class="job-card">
-      <div class="job-card-top">
-        <div>
-          <h3 class="job-title"></h3>
-          <p class="job-phone"></p>
-          <p class="job-date"></p>
-        </div>
-        <div class="job-photo-count"></div>
-      </div>
+            <div class="two-col ruled-section">
+              <div>
+                <h2>Lake Address</h2>
+                <label>Address<input id="lakeAddress" readonly /></label>
+                <label>State<input id="lakeState" readonly /></label>
+                <label>City<input id="lakeCity" readonly /></label>
+                <label>ZIP<input id="lakeZip" readonly /></label>
+              </div>
+              <div>
+                <h2>Billing Address</h2>
+                <label>Address<input id="billingAddress" readonly /></label>
+                <label>State<input id="billingState" readonly /></label>
+                <label>City<input id="billingCity" readonly /></label>
+                <label>ZIP<input id="billingZip" readonly /></label>
+              </div>
+            </div>
 
-      <div class="saved-time-grid">
-        <div>
-          <span>START</span>
-          <strong class="job-start"></strong>
-        </div>
-        <div>
-          <span>STOP</span>
-          <strong class="job-stop"></strong>
-        </div>
-      </div>
+            <div class="job-meta ruled-section">
+              <div class="meta-left">
+                <div class="field-row">
+                  <label>Boat / PWC<input id="boat" readonly /></label>
+                  <label>Slip Width<input id="slipWidth" readonly /></label>
+                </div>
+                <div class="field-row">
+                  <label>Boat Ramp<input id="boatRamp" readonly /></label>
+                  <label>Slip Location<input id="slipLocation" readonly /></label>
+                </div>
+                <div>
+                  <h2>Items Used</h2>
+                  <textarea id="itemsUsed" placeholder="Parts, materials, quantities..."></textarea>
+                </div>
+              </div>
+              <div class="meta-right">
+                <label>Job No.<input id="jobNo" readonly /></label>
+                <label>Day<input id="jobDay" readonly /></label>
+                <label>Techs<input id="techs" placeholder="Example: A-D" /></label>
+                <label>Call?
+                  <select id="callRequired">
+                    <option>YES</option>
+                    <option>NO</option>
+                  </select>
+                </label>
+                <label>Arrive
+                  <div class="time-control">
+                    <input id="arrive" />
+                    <button type="button" class="time-btn" data-time-target="arrive">Now</button>
+                  </div>
+                </label>
+                <label>Left
+                  <div class="time-control">
+                    <input id="left" />
+                    <button type="button" class="time-btn" data-time-target="left">Now</button>
+                  </div>
+                </label>
+              </div>
+            </div>
 
-      <div class="detail-block items-block">
-        <span>ITEMS USED</span>
-        <p class="job-items"></p>
-      </div>
+            <div class="table-wrap ruled-section">
+              <h2>Lift / Equipment</h2>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Installed</th>
+                    <th>Lift Type</th>
+                    <th>Color</th>
+                    <th>Boat</th>
+                    <th>Tank Numbers</th>
+                    <th>Motor</th>
+                    <th>Motor Number</th>
+                    <th>Inst.</th>
+                  </tr>
+                </thead>
+                <tbody id="equipmentBody"></tbody>
+              </table>
+            </div>
 
-      <div class="detail-block notes-block">
-        <span>NOTES</span>
-        <p class="job-notes"></p>
-      </div>
+            <details class="history ruled-section" open>
+              <summary>
+                <span>Previous Service Calls</span>
+                <span class="summary-hint">Office history</span>
+              </summary>
+              <div class="table-wrap no-border">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Call In Date</th>
+                      <th>Lift</th>
+                      <th>Techs</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyBody"></tbody>
+                </table>
+              </div>
+            </details>
 
-      <div class="job-photo-strip photo-strip"></div>
+            <div class="ruled-section">
+              <h2>Work Performed / Notes</h2>
+              <textarea id="workNotes" class="notes-area" placeholder="Describe work completed, findings, recommendations..."></textarea>
+            </div>
 
-      <div class="job-actions">
-        <label class="secondary-button small">
-          Add Photos
-          <input class="job-photo-input" type="file" accept="image/*" multiple hidden />
-        </label>
-        <button class="secondary-button small pdf-button">PDF</button>
-        <button class="danger-button small delete-button">Delete</button>
-      </div>
-    </article>
-  </template>
+            <div class="ruled-section">
+              <h2>Job Photos</h2>
+              <div class="photo-tools">
+                <label class="upload-btn">
+                  + Add Photos
+                  <input id="photoInput" type="file" accept="image/*" capture="environment" multiple hidden />
+                </label>
+                <span class="muted small">Photos are stored on this device in V1.</span>
+              </div>
+              <div class="photo-grid" id="photoGrid"></div>
+            </div>
 
-  <div id="toast" class="toast" hidden></div>
+            <div class="action-row">
+              <button type="button" class="ghost-btn" id="saveDraftBtn">Save Draft</button>
+              <button type="button" class="primary-btn wide" id="completeBtn">Mark as Completed</button>
+              <button type="button" class="ghost-btn" id="printBtn">Export PDF</button>
+            </div>
+          </section>
+        </form>
+      </section>
+    </main>
+
+    <footer class="bottom-note">HHC Job Tracker • Version 1 Prototype</footer>
+  </div>
   <script src="app.js"></script>
 </body>
 </html>

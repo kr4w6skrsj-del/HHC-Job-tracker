@@ -1,0 +1,16 @@
+{
+  "name": "HHC Job Tracker",
+  "short_name": "HHC Jobs",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#eef3f5",
+  "theme_color": "#005b7d",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
