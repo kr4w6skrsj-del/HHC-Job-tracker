@@ -1,52 +1,78 @@
-# HHC Job Tracker — Version 1
+# HHC Job Tracker — Version 1.1
 
-This is a front-end Progressive Web App prototype for the HydroHoist crew workflow.
+This is the revised Version 1.1 build.
 
-## What works in V1
+## Version 1.1 features
 
-- Crew selector for HHBLACK, HHBLUE, HHGREEN, and HHRED
+- Crew selector for **HHBLACK, HHBLUE, HHGREEN, and HHRED**
 - Crew-specific job list
-- Simulated "office import" job assignment
-- Service-sheet-inspired job detail layout
-- Locked/prefilled customer, address, lift/equipment, and service-history fields
-- Crew-entered technicians, call status, arrival/leave times, items used, and work notes
-- Job photo capture/upload with local previews
-- Draft/in-progress/completed status
-- Local browser storage
-- Print / Save as PDF through the browser
-- PWA manifest + service worker for Home Screen installation and basic offline loading
+- Simulated Microsoft Access / office import
+- Locked customer, address, lift/equipment, and previous-service information
+- Crew-entered technicians, call status, arrival/leave times, items used, work performed, and notes
+- Separate **Take Photo** and **Upload Photos** controls
+- Multiple existing photos can be selected from an iPhone/iPad/desktop photo library
+- Local device storage for the prototype
+- Draft / In Progress / Completed job status
+- Home Screen PWA support and basic offline loading
 
-## Intentionally mocked for V1
+## Revised in this V1.1 package
 
-- Microsoft Access integration
-- Real office-to-crew syncing
+### Direct PDF sharing on iPhone/iPad
+The **Share PDF** button now creates a real PDF file inside the web app instead of opening the browser Print screen first.
+
+On compatible iPhone/iPad browsers and Home Screen PWAs, it opens the native iOS **Share sheet** so the PDF can be sent by Messages, Mail, AirDrop, Files, etc.
+
+If file sharing is unavailable in a browser, the app falls back to downloading the PDF.
+
+### Office-friendly PDF
+The PDF's first page is generated in the familiar HydroHoist service-sheet style, with:
+- Customer information
+- Lake and billing addresses
+- Boat / slip information
+- Job number, technicians, call status, arrival/leave time
+- Items used
+- Lift/equipment information
+- Previous service calls
+- Work performed / notes
+
+Uploaded job photos are placed on additional PDF pages so the service sheet remains clean and familiar to office staff.
+
+Filename format:
+`CustomerID_JobNumber_Date.pdf`
+
+Example:
+`1883_Job1042_08-17-2026.pdf`
+
+### HydroHoist branding
+The app now uses the HydroHoist of the Carolinas **flag mark supplied by the user**:
+- In the app interface
+- As the Home Screen / PWA icon
+- In exported PDFs
+
+## Still mocked in V1.1
+
+- Real Microsoft Access integration
+- Office-to-crew cloud synchronization
 - User authentication
-- Cloud photo storage
+- Cloud photo backup
 - Cross-device synchronization
-- Office dashboard / reassignment
-- Sending completed job data back to Access
+- Sending completed records directly back into Access
 
-## GitHub Pages
+## Updating the GitHub Pages app
 
-Upload these files to the root of the HHC-Job-tracker repository:
+Replace/upload these files in the root of the `HHC-Job-tracker` repository:
 
-- index.html
-- styles.css
-- app.js
-- manifest.webmanifest
-- service-worker.js
-- icon.svg
+- `index.html`
+- `styles.css`
+- `app.js`
+- `manifest.webmanifest`
+- `service-worker.js`
+- `logo-flag.png`
+- `icon-192.png`
+- `icon-512.png`
+- `apple-touch-icon.png`
+- `icon.svg` (optional fallback)
 
-Then publish the `main` branch from `/ (root)` in GitHub Pages.
+Then commit the changes to `main`.
 
-## Test flow
-
-1. Open the site.
-2. Select a crew.
-3. Tap **Simulate Office Import**.
-4. Open the new job.
-5. Enter technicians, arrival time, items used, notes, and photos.
-6. Save Draft or Mark as Completed.
-7. Use Export PDF to print/save the completed service sheet.
-
-Important: V1 stores job data and photos locally in the browser. Clearing website data can erase them. Do not use this prototype as the company's production job record system until the real server/database sync is added.
+Important: because the service worker is cached, after GitHub Pages redeploys you may need to close and reopen the Home Screen app once before the new V1.1 appearance is visible.

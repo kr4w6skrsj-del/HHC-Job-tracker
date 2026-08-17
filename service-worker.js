@@ -1,5 +1,5 @@
-const CACHE = "hhc-v1-cache";
-const ASSETS = ["./","./index.html","./styles.css","./app.js","./manifest.webmanifest","./icon.svg"];
+const CACHE = "hhc-v1-1-share-logo-cache";
+const ASSETS = ["./","./index.html","./styles.css","./app.js","./manifest.webmanifest","./logo-flag.png","./icon-192.png","./icon-512.png","./apple-touch-icon.png"];
 
 self.addEventListener("install", event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));

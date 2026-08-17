@@ -7,19 +7,19 @@
   <title>HHC Job Tracker</title>
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="stylesheet" href="styles.css" />
-  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
 </head>
 <body>
   <div id="app">
     <header class="topbar">
-      <div class="brand-mini">HHC JOB TRACKER</div>
+      <div class="brand-mini"><img src="logo-flag.png" alt="HydroHoist logo" /><span>HHC JOB TRACKER</span></div>
       <div class="sync-pill" id="syncPill">● Local</div>
     </header>
 
     <main class="shell">
       <section id="crewGate" class="panel crew-gate">
         <div class="hero-mark">
-          <div class="wave-mark">≈</div>
+          <img class="brand-flag" src="logo-flag.png" alt="HydroHoist logo" />
           <div>
             <h1>HydroHoist</h1>
             <p>OF THE CAROLINAS</p>
@@ -66,7 +66,7 @@
           <section class="service-sheet">
             <div class="sheet-brand">
               <div class="hero-mark compact">
-                <div class="wave-mark">≈</div>
+                <img class="brand-flag" src="logo-flag.png" alt="HydroHoist logo" />
                 <div>
                   <h1>HydroHoist</h1>
                   <p>OF THE CAROLINAS</p>
@@ -197,10 +197,14 @@
               <h2>Job Photos</h2>
               <div class="photo-tools">
                 <label class="upload-btn">
-                  + Add Photos
-                  <input id="photoInput" type="file" accept="image/*" capture="environment" multiple hidden />
+                  📷 Take Photo
+                  <input id="cameraInput" type="file" accept="image/*" capture="environment" hidden />
                 </label>
-                <span class="muted small">Photos are stored on this device in V1.</span>
+                <label class="upload-btn">
+                  🖼️ Upload Photos
+                  <input id="photoLibraryInput" type="file" accept="image/*" multiple hidden />
+                </label>
+                <span class="muted small">Take a new photo or choose existing photos from your device.</span>
               </div>
               <div class="photo-grid" id="photoGrid"></div>
             </div>
@@ -208,14 +212,14 @@
             <div class="action-row">
               <button type="button" class="ghost-btn" id="saveDraftBtn">Save Draft</button>
               <button type="button" class="primary-btn wide" id="completeBtn">Mark as Completed</button>
-              <button type="button" class="ghost-btn" id="printBtn">Export PDF</button>
+              <button type="button" class="ghost-btn" id="printBtn">Share PDF</button>
             </div>
           </section>
         </form>
       </section>
     </main>
 
-    <footer class="bottom-note">HHC Job Tracker • Version 1 Prototype</footer>
+    <footer class="bottom-note">HHC Job Tracker • Version 1.1 Prototype</footer>
   </div>
   <script src="app.js"></script>
 </body>
