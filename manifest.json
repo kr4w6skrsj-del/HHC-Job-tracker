@@ -1,0 +1,22 @@
+{
+  "name": "JobClock",
+  "short_name": "JobClock",
+  "description": "Field job logging with Eastern start/stop times, photos, items used, notes, and PDF export.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07090c",
+  "theme_color": "#0b0d10",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
