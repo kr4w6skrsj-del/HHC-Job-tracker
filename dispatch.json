@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "source": "HHC Office Dashboard v0.2",
+  "generatedAt": "2026-08-19T20:36:16.283Z",
+  "weekKey": "2026-08-17",
+  "weekRange": "Aug 17–22, 2026",
+  "jobs": [
+    {
+      "id": "access-job-10363",
+      "customerId": "6587",
+      "customerName": "KRISTINA SCHROTENBOER",
+      "email": "GRS8185@YAHOO.COM",
+      "phone": "616-821-1704 (GLEN)",
+      "lakeAddress": "147 LITTLE INDIAN LOOP",
+      "lakeState": "NC",
+      "lakeCity": "Mooresville",
+      "lakeZip": "28117",
+      "billingAddress": "",
+      "billingState": "NC",
+      "billingCity": "",
+      "billingZip": "",
+      "boat": "",
+      "slipWidth": "",
+      "boatRamp": "",
+      "slipLocation": "",
+      "jobNo": "10363",
+      "scheduledDate": "2026-08-20",
+      "weekKey": "2026-08-17",
+      "techs": "B-P-D",
+      "callRequired": "YES",
+      "arrive": "",
+      "left": "",
+      "itemsUsed": "",
+      "workNotes": "",
+      "requestedWork": "CONVERT 8800 TO TRITOON, SETUP FOR 24' BALISE",
+      "status": "Assigned",
+      "crew": "HHBLACK",
+      "photos": [],
+      "equipment": [
+        {
+          "installed": "",
+          "liftType": "",
+          "color": "",
+          "boat": "",
+          "tankNumbers": "",
+          "motor": "",
+          "motorNumber": "",
+          "inst": ""
+        }
+      ],
+      "history": [],
+      "reviewed": false,
+      "carryover": false,
+      "accessSourceKey": "job:10363",
+      "importSource": "Microsoft Access Export"
+    }
+  ]
+}
