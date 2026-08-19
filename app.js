@@ -128,11 +128,8 @@ document.getElementById("backBtn").addEventListener("click", () => {
   else showJobs();
 });
 
-// Office-import simulation now demonstrates a full Monday-Saturday dispatch week.
-document.getElementById("demoImportBtn").addEventListener("click", () => {
-  importDemoWeek();
-  renderJobs();
-});
+// Pull the latest dispatch.json published by the office dashboard.
+document.getElementById("demoImportBtn").addEventListener("click", () => syncFromOffice(false));
 
 // Job controls.
 document.getElementById("saveDraftBtn").addEventListener("click", () => {
@@ -738,6 +735,80 @@ function importDemoWeek() {
     state.jobs.push(imported);
   });
   saveState();
+}
+
+async function syncFromOffice(silent=false) {
+  const button = document.getElementById("demoImportBtn");
+  const oldText = button?.textContent;
+  if (button && !silent) {
+    button.disabled = true;
+    button.textContent = "Syncing…";
+  }
+  syncPill.textContent = "↻ Syncing";
+
+  try {
+    const response = await fetch(`./dispatch.json?ts=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(response.status === 404 ? "No dispatch.json has been published yet." : `Office feed returned ${response.status}.`);
+    const payload = await response.json();
+    const remoteJobs = Array.isArray(payload) ? payload : Array.isArray(payload.jobs) ? payload.jobs : [];
+    if (!remoteJobs.length) throw new Error("The office feed contains no jobs.");
+
+    // Remove the old built-in V1.2 demo batch when the first real office feed arrives.
+    state.jobs = state.jobs.filter(j => !j.demoBatchWeek);
+
+    let added = 0, updated = 0;
+    remoteJobs.map(j => normalizeJob(j)).forEach(remote => {
+      remote.officeSynced = true;
+      remote.officeSyncGeneratedAt = payload.generatedAt || new Date().toISOString();
+      const idx = state.jobs.findIndex(local => sameSyncedJob(local, remote));
+      if (idx < 0) {
+        state.jobs.push(remote);
+        added++;
+      } else {
+        state.jobs[idx] = mergeOfficeJob(state.jobs[idx], remote);
+        updated++;
+      }
+    });
+
+    state.lastOfficeSync = new Date().toISOString();
+    persistState(false);
+    migrateAndRollover();
+    if (currentCrew) renderJobs();
+    const t = new Date().toLocaleTimeString([], { hour:"numeric", minute:"2-digit" });
+    syncPill.textContent = `✓ Office ${t}`;
+    if (!silent) alert(`Office sync complete. ${added} new job${added===1?"":"s"}, ${updated} updated.`);
+  } catch (err) {
+    console.error(err);
+    syncPill.textContent = "● Local";
+    if (!silent) alert(`Could not sync from the office. ${err.message || "Check your connection and try again."}`);
+  } finally {
+    if (button && !silent) {
+      button.disabled = false;
+      button.textContent = oldText || "↻ Sync from Office";
+    }
+  }
+}
+
+function sameSyncedJob(a, b) {
+  if (a.accessSourceKey && b.accessSourceKey) return a.accessSourceKey === b.accessSourceKey;
+  if (a.id && b.id) return String(a.id) === String(b.id);
+  if (a.jobNo && b.jobNo) return String(a.jobNo).trim() === String(b.jobNo).trim();
+  return String(a.customerName || "").trim().toLowerCase() === String(b.customerName || "").trim().toLowerCase()
+    && String(a.scheduledDate || "") === String(b.scheduledDate || "");
+}
+
+function mergeOfficeJob(local, remote) {
+  const localStarted = local.status === "In Progress" || local.status === "Completed" || local.arrive || local.left || local.workNotes || local.itemsUsed || (Array.isArray(local.photos) && local.photos.length);
+  const fieldData = localStarted ? {
+    techs: local.techs || remote.techs,
+    arrive: local.arrive || "",
+    left: local.left || "",
+    itemsUsed: local.itemsUsed || "",
+    workNotes: local.workNotes || "",
+    photos: Array.isArray(local.photos) ? local.photos : [],
+    status: local.status || remote.status
+  } : {};
+  return normalizeJob({ ...local, ...remote, ...fieldData });
 }
 
 function defaultSelectedDay() {
@@ -1351,7 +1422,12 @@ function resizeImage(file, maxSize, quality) {
 function pulseSaved() {
   syncPill.textContent = "✓ Saved locally";
   clearTimeout(pulseSaved.t);
-  pulseSaved.t = setTimeout(() => syncPill.textContent = "● Local", 1800);
+  pulseSaved.t = setTimeout(() => {
+    if (state.lastOfficeSync) {
+      const t = new Date(state.lastOfficeSync).toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+      syncPill.textContent = `✓ Office ${t}`;
+    } else syncPill.textContent = "● Local";
+  }, 1800);
 }
 function esc(v) {
   return String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
@@ -1363,3 +1439,6 @@ if ("serviceWorker" in navigator) {
 
 if (currentCrew && CREWS.includes(currentCrew)) showJobs();
 else showCrewGate();
+
+// Best-effort background refresh each time the app opens. The manual Sync button remains available.
+syncFromOffice(true);
